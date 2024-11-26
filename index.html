@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario editable con animaciones</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            text-align: center;
+            padding: 8px;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        input[type="number"] {
+            width: 80px;
+            text-align: center;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .completed {
+            background-color: #d4edda;
+            animation: fadeOut 1s forwards;
+        }
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0.6;
+            }
+        }
+        #total {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        #qrcode {
+            margin-top: 20px;
+        }
+
+        /* Responsividad */
+        @media (max-width: 768px) {
+            table {
+                font-size: 12px;
+            }
+            input[type="number"] {
+                width: 60px;
+            }
+            button {
+                padding: 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            table {
+                font-size: 10px;
+            }
+            input[type="number"] {
+                width: 50px;
+            }
+            th, td {
+                padding: 6px;
+            }
+            button {
+                padding: 4px;
+            }
+        }
+
+        /* Contenedor para la tabla, con scroll horizontal en pantallas pequeñas */
+        .table-container {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        /* Estilos para el overlay de loading */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            z-index: 1000;
+            display: none;
+        }
+
+        /* Spinner de loading */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Estilo para el formulario que contiene el QR */
+        #qrForm {
+            display: none;
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #qrcode {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+    </style>
+    <!-- Agregar la librería QRCode -->
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+</head>
+<body>
+
+<h1>Formulario de preparación</h1>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Línea</th>
+                <th>Código</th>
+                <th>Artículo</th>
+                <th>Stock</th>
+                <th>Por preparar</th>
+                <th>Unidades preparadas</th>
+                <th>Estado</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>CASA/P/6001</td>
+                <td>CASACA BLACK ORLANDO</td>
+                <td>50</td>
+                <td><input type="number" value="0" min="0" max="50" onchange="updateTotal(this, 50, 1)"></td>
+                <td><input type="number" value="0" min="0" onchange="updateUnitsPrepared(this, 1)"></td>
+                <td>Pendiente</td>
+                <td><button onclick="markAsCompleted(this)">Pedido terminado</button></td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>PANT/N/6002</td>
+                <td>PANTALÓN COCKER CARGO NEGRO</td>
+                <td>30</td>
+                <td><input type="number" value="0" min="0" max="30" onchange="updateTotal(this, 30, 2)"></td>
+                <td><input type="number" value="0" min="0" onchange="updateUnitsPrepared(this, 2)"></td>
+                <td>Pendiente</td>
+                <td><button onclick="markAsCompleted(this)">Pedido terminado</button></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<p id="total">Total por preparar: 0</p>
+
+<!-- Botón para terminar todo el proceso -->
+<button onclick="finishProcess()">Terminar todo el proceso</button>
+
+<!-- Contenedor para el QR y el formulario para escanear -->
+<div id="qrForm">
+    <h2>Código QR listo para escanear:</h2>
+    <div id="qrcode"></div>
+</div>
+
+<!-- Overlay de carga -->
+<div id="loadingOverlay" class="overlay">
+    <div class="spinner"></div>
+    <p>Generando código QR...</p>
+</div>
+
+<script>
+    // Función para actualizar el total por preparar
+    function updateTotal(inputElement, maxStock, rowId) {
+        let value = parseInt(inputElement.value) || 0;
+
+        // Asegura que el valor no supere el stock disponible
+        if (value > maxStock) {
+            inputElement.value = maxStock; // Restablece al valor máximo si es mayor al stock
+            value = maxStock; // Actualiza el valor a stock máximo
+        }
+
+        // Actualizar el total por preparar
+        let total = 0;
+        const inputs = document.querySelectorAll('input[type="number"]');
+        inputs.forEach(input => {
+            total += parseInt(input.value) || 0;
+        });
+
+        document.getElementById('total').innerText = `Total por preparar: ${total}`;
+    }
+
+    // Función para actualizar las unidades preparadas
+    function updateUnitsPrepared(inputElement, rowId) {
+        const value = parseInt(inputElement.value) || 0;
+        const row = inputElement.closest('tr'); // Encuentra la fila
+        row.querySelector('td:nth-child(6)').innerText = value; // Actualiza las unidades preparadas en la tabla
+    }
+
+    // Función para marcar un pedido como completado
+    function markAsCompleted(button) {
+        const row = button.parentElement.parentElement;
+        row.classList.add('completed');
+        row.querySelector('td:nth-child(6)').innerText = 'Completado'; // Cambia el estado a "Completado"
+        button.disabled = true; // Desactiva el botón
+        button.innerText = 'Terminado'; // Cambia el texto del botón
+    }
+
+    // Función para terminar todo el proceso y generar un código QR
+    function finishProcess() {
+        // Mostrar el overlay de loading
+        document.getElementById('loadingOverlay').style.display = 'flex';
+
+        // Simular un retraso para el efecto de carga (por ejemplo, 3 segundos)
+        setTimeout(function() {
+            const qrData = "NV228|RS226";
+            const qrCode = new QRCode(document.getElementById("qrcode"), {
+                text: qrData,
+                width: 128,
+                height: 128
+            });
+
+            // Ocultar el overlay de loading
+            document.getElementById('loadingOverlay').style.display = 'none';
+
+            // Mostrar el formulario con el QR
+            document.getElementById('qrForm').style.display = 'flex';
+
+            // Ocultar la tabla y el botón de finalizar
+            document.querySelector('table').style.display = 'none';
+            document.querySelector('button').style.display = 'none';
+        }, 3000); // Retraso de 3 segundos
+    }
+</script>
+
+</body>
+</html>
