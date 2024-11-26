@@ -9,7 +9,13 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -54,45 +60,36 @@
             font-weight: bold;
             font-size: 16px;
         }
+
+        /* Estilos para el contenedor del QR y la información */
+        #qrForm {
+            display: none;
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* Estilo para los contenedores */
+        .info-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .info-container p, .info-container button {
+            margin: 5px;
+        }
+
         #qrcode {
             margin-top: 20px;
         }
 
-        /* Responsividad */
-        @media (max-width: 768px) {
-            table {
-                font-size: 12px;
-            }
-            input[type="number"] {
-                width: 60px;
-            }
-            button {
-                padding: 5px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            table {
-                font-size: 10px;
-            }
-            input[type="number"] {
-                width: 50px;
-            }
-            th, td {
-                padding: 6px;
-            }
-            button {
-                padding: 4px;
-            }
-        }
-
-        /* Contenedor para la tabla, con scroll horizontal en pantallas pequeñas */
-        .table-container {
-            overflow-x: auto;
-            width: 100%;
-        }
-
-        /* Estilos para el overlay de loading */
+        /* Overlay de carga */
         .overlay {
             position: fixed;
             top: 0;
@@ -124,22 +121,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Estilo para el formulario que contiene el QR */
-        #qrForm {
-            display: none;
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        #qrcode {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
     </style>
     <!-- Agregar la librería QRCode -->
     <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
@@ -147,6 +128,17 @@
 <body>
 
 <h1>Formulario de preparación</h1>
+
+<!-- Contenedor de la información -->
+<div class="info-container">
+    <label>
+        <input type="checkbox" id="editCheckbox" onchange="toggleEdit()"> Habilitar edición de unidades preparadas
+    </label>
+
+    <p id="total">Total por preparar: 0</p>
+
+    <button onclick="finishProcess()">Terminar todo el proceso</button>
+</div>
 
 <div class="table-container">
     <table>
@@ -186,11 +178,6 @@
         </tbody>
     </table>
 </div>
-
-<p id="total">Total por preparar: 0</p>
-
-<!-- Botón para terminar todo el proceso -->
-<button onclick="finishProcess()">Terminar todo el proceso</button>
 
 <!-- Contenedor para el QR y el formulario para escanear -->
 <div id="qrForm">
@@ -251,8 +238,8 @@
             const qrData = "NV228|RS226";
             const qrCode = new QRCode(document.getElementById("qrcode"), {
                 text: qrData,
-                width: 128,
-                height: 128
+                width: 256,   // Tamaño aumentado del QR
+                height: 256   // Tamaño aumentado del QR
             });
 
             // Ocultar el overlay de loading
@@ -265,6 +252,15 @@
             document.querySelector('table').style.display = 'none';
             document.querySelector('button').style.display = 'none';
         }, 3000); // Retraso de 3 segundos
+    }
+
+    // Función para habilitar o deshabilitar la edición de unidades preparadas
+    function toggleEdit() {
+        const isChecked = document.getElementById('editCheckbox').checked;
+        const unitInputs = document.querySelectorAll('td:nth-child(6) input[type="number"]');
+        unitInputs.forEach(input => {
+            input.disabled = !isChecked;
+        });
     }
 </script>
 
