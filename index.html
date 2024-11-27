@@ -17,21 +17,24 @@
         h1, h2 {
             text-align: center;
             width: 100%;
+            margin-top: 10px;
         }
 
         h2 {
             font-weight: bold;
-            margin-top: 10px;
         }
 
         .container {
-            width: 80%;
+            width: 90%;
+            max-width: 1200px; /* Limitar el ancho máximo en pantallas grandes */
             padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            margin-top: 20px;
         }
 
+        /* Formulario responsivo usando CSS Grid */
         .form-container {
             width: 100%;
             display: grid;
@@ -40,33 +43,38 @@
             margin-bottom: 20px;
         }
 
-        .form-container input,
-        .form-container select {
-            width: 100%;
-            font-size: 16px;
-            padding: 10px;
-            text-align: center;
+        /* Ajustes para pantallas pequeñas */
+        @media (max-width: 768px) {
+            .form-container {
+                grid-template-columns: 1fr; /* En pantallas más pequeñas, los campos estarán en una sola columna */
+            }
         }
 
+        .form-container input,
+        .form-container select,
         .form-container button {
             width: 100%;
             font-size: 16px;
             padding: 12px;
+            text-align: center;
+            border-radius: 5px;
+        }
+
+        .form-container button {
             background-color: #4CAF50;
             color: white;
             border: none;
             cursor: pointer;
             transition: background-color 0.3s;
-            text-align: center;
         }
 
         .form-container button:hover {
             background-color: #45a049;
         }
 
-        /* Estilo actualizado para el botón "Cambiar estado" */
+        /* Estilo para botones de acción */
         .action-button {
-            background-color: #007bff; /* Azul */
+            background-color: #007bff;
             color: white;
             padding: 8px 16px;
             font-size: 14px;
@@ -78,12 +86,12 @@
         }
 
         .action-button:hover {
-            background-color: #0056b3; /* Azul más oscuro al pasar el ratón */
+            background-color: #0056b3;
         }
 
-        /* Estilo para el botón "Terminar todo el proceso" */
+        /* Estilo para el botón de terminar proceso */
         .finish-button {
-            background-color: #007bff; /* Azul */
+            background-color: #007bff;
             color: white;
             font-size: 18px;
             padding: 15px 30px;
@@ -92,11 +100,12 @@
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.3s ease;
             margin-top: 20px;
+            width: 100%;
         }
 
         .finish-button:hover {
-            background-color: #0056b3; /* Azul más oscuro al pasar el ratón */
-            transform: scale(1.05); /* Efecto de aumentar ligeramente el tamaño al pasar el ratón */
+            background-color: #0056b3;
+            transform: scale(1.05);
         }
 
         .checkboxes-container {
@@ -194,6 +203,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
@@ -286,21 +296,19 @@
     function finishProcess() {
         var numeroReserva = document.getElementById('searchInput').value;
 
-        if (reservaGenerada === numeroReserva) {
-            alert("Ya se ha generado un QR para esta reserva.");
-            return; // Si ya existe un QR, no hacer nada más
+        if (reservaGenerada !== numeroReserva) {
+            generateQRCode(numeroReserva);
+            showLoading();
+            setTimeout(function() {
+                hideLoading();
+                alert('Reserva de stock terminada');
+                document.getElementById('qrForm').style.display = 'block';
+                reservaGenerada = numeroReserva;  // Registrar la reserva con el QR generado
+                document.getElementById('finishButton').disabled = true;  // Deshabilitar el botón "Terminar todo el proceso"
+            }, 2000); // 2 segundos de retraso
+        } else {
+            alert('El QR ya ha sido generado para esta reserva');
         }
-
-        showLoading();
-
-        // Simular un retraso antes de generar el QR
-        setTimeout(function() {
-            hideLoading();
-            generateQRCode('Reserva de stock terminada');
-            document.getElementById('qrForm').style.display = 'block';
-            reservaGenerada = numeroReserva;  // Registrar la reserva con el QR generado
-            document.getElementById('finishButton').disabled = true;  // Deshabilitar el botón "Terminar todo el proceso"
-        }, 2000); // 2 segundos de retraso
     }
 
     // Mostrar overlay de carga
@@ -328,7 +336,6 @@
     // Validar si todos los artículos están en "Terminado"
     function checkFinishButtonStatus() {
         var allTerminado = true;
-
         var rows = document.querySelectorAll('#dataTable tbody tr');
         rows.forEach(function(row) {
             var estado = row.querySelector('td:nth-child(7)').textContent.trim();
