@@ -273,138 +273,89 @@
     <div id="total">Total unidades preparadas: <span id="totalUnidades">0</span></div>
     
     <div id="qrForm">
+        <h3 id="numeroReservaTituloFinal"></h3>
         <div id="qrcode"></div>
-        <div id="qrcode-text">Favor hacer el cierre de la reserva en el validador</div>
-    </div>
-
-    <div id="loadingOverlay" class="overlay">
-        <div class="spinner"></div>
-        <span>Cargando...</span>
+        <div id="qrcode-text"></div>
     </div>
 
 </div>
 
+<div id="loadingOverlay" class="overlay">
+    <div class="spinner"></div>
+    <div>Generando código QR...</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+
 <script>
+    let qrGenerated = false; // Variable para controlar si el QR ya fue generado
+
     function initPage() {
-        showLoading();
-        setTimeout(function() {
-            hideLoading();
-            document.getElementById('qrForm').style.display = 'none'; // Ocultar QR y mensaje al inicio
-        }, 2000); // Simula un proceso de 2 segundos para la carga
-    }
-
-    function checkPikeadorInput() {
-        var newPikeadorInput = document.getElementById('newPikeadorInput');
-        var addPikeadorButton = document.getElementById('addPikeadorButton');
-        addPikeadorButton.disabled = newPikeadorInput.value.trim() === "";
-    }
-
-    function addPikeador() {
-        var newPikeadorInput = document.getElementById('newPikeadorInput');
-        var pikeadorSelect = document.getElementById('pikeadorSelect');
-
-        var newPikeadorName = newPikeadorInput.value.trim();
-        if (newPikeadorName !== "") {
-            var newOption = document.createElement('option');
-            newOption.value = newPikeadorName;
-            newOption.textContent = newPikeadorName;
-            pikeadorSelect.appendChild(newOption);
-
-            // Limpiar el campo de entrada y deshabilitar el botón
-            newPikeadorInput.value = '';
-            document.getElementById('addPikeadorButton').disabled = true;
-        }
+        document.getElementById("finishButton").disabled = true;
     }
 
     function updateNumeroReserva() {
         var numeroReserva = document.getElementById('searchInput').value;
         document.getElementById('numeroReservaTitulo').textContent = "Número de reserva: " + numeroReserva;
-        checkFinishButtonStatus();
-    }
-
-    function checkFinishButtonStatus() {
-        var numeroReserva = document.getElementById('searchInput').value;
-        var finishButton = document.getElementById('finishButton');
-        finishButton.disabled = numeroReserva.trim() === ""; // Deshabilita el botón si no hay número de reserva
     }
 
     function finishProcess() {
+        if (qrGenerated) return;  // Si ya se generó el QR, no hacer nada
         var numeroReserva = document.getElementById('searchInput').value;
+        var numeroNotaVenta = document.getElementById('notaVentaInput').value;
         showLoading();
         setTimeout(function () {
             hideLoading();
-            generateQRCode(numeroReserva);
+            generateQRCode(numeroReserva, numeroNotaVenta);  // Generar el QR
             document.getElementById('qrForm').style.display = 'block'; // Mostrar QR y mensaje
             document.getElementById('numeroReservaTituloFinal').textContent = "Número de reserva Terminado: " + numeroReserva;
+            qrGenerated = true;  // Marcar que el QR ha sido generado
+            document.getElementById('finishButton').disabled = true;  // Desactivar el botón
         }, 2000); // Simula un proceso de 2 segundos
     }
 
+    function generateQRCode(numeroReserva, numeroNotaVenta) {
+        var qrcode = new QRCode(document.getElementById("qrcode"), {
+            text: "NV" + numeroReserva + "|RS" + numeroNotaVenta,
+            width: 256,
+            height: 256,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    }
+
     function showLoading() {
-        document.getElementById('loadingOverlay').style.display = 'flex';
+        document.getElementById("loadingOverlay").style.display = "flex";
     }
 
     function hideLoading() {
-        document.getElementById('loadingOverlay').style.display = 'none';
+        document.getElementById("loadingOverlay").style.display = "none";
     }
 
-    function generateQRCode(numeroReserva) {
-        var qrcode = new QRCode(document.getElementById("qrcode"), {
-            text: "Reserva: " + numeroReserva,
-            width: 256,  // Aumentamos el tamaño del QR
-            height: 256,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
-        });
-    }
-
-    function changeState(lineaId) {
-        var estadoElement = document.getElementById('estado' + lineaId);
-        var button = document.querySelector(`#linea${lineaId} button`);
-
+    function changeState(lineNumber) {
+        var estadoElement = document.getElementById('estado' + lineNumber);
+        var estadoButton = document.querySelectorAll('#linea' + lineNumber + ' .action-button')[0];
         if (estadoElement.textContent === 'Pendiente') {
             estadoElement.textContent = 'Terminado';
-            estadoElement.classList.add('completed');
-            button.textContent = 'Marcar como Pendiente';
+            estadoButton.style.backgroundColor = '#28a745';
+            estadoButton.textContent = 'Marcar como Pendiente';
         } else {
             estadoElement.textContent = 'Pendiente';
-            estadoElement.classList.remove('completed');
-            button.textContent = 'Marcar como Terminado';
+            estadoButton.style.backgroundColor = '#007bff';
+            estadoButton.textContent = 'Marcar como Terminado';
         }
     }
 
-    function filterByState() {
-        var pendienteChecked = document.getElementById('pendienteCheckbox').checked;
-        var terminadoChecked = document.getElementById('terminadoCheckbox').checked;
-
-        var rows = document.querySelectorAll("#dataTable tbody tr");
-
-        rows.forEach(function(row) {
-            var estado = row.querySelector('td:nth-child(7) span').textContent;
-            if ((pendienteChecked && estado === 'Pendiente') || (terminadoChecked && estado === 'Terminado')) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-    }
-
-    function updateUnidadesPreparadas(lineaId) {
-        var inputElement = document.getElementById('unidadesPreparadas' + lineaId);
-        var unidadesPreparadas = parseInt(inputElement.value) || 0;  // Obtener el valor y asegurarse de que sea un número
-        var totalUnidades = 0;
-
-        // Calcular el total de unidades preparadas
-        var allInputs = document.querySelectorAll('[id^="unidadesPreparadas"]');
-        allInputs.forEach(function(input) {
-            var value = parseInt(input.value) || 0;
-            totalUnidades += value;
-        });
-
-        // Mostrar el total de unidades preparadas
+    function updateUnidadesPreparadas(lineNumber) {
+        var unidadesPreparadas = parseInt(document.getElementById('unidadesPreparadas' + lineNumber).value);
+        var totalUnidades = parseInt(document.getElementById('totalUnidades').textContent);
+        totalUnidades += unidadesPreparadas;
         document.getElementById('totalUnidades').textContent = totalUnidades;
-
-        console.log("Unidades preparadas en línea " + lineaId + ": " + unidadesPreparadas);
+        if (totalUnidades > 0) {
+            document.getElementById("finishButton").disabled = false;
+        }
     }
 </script>
 
