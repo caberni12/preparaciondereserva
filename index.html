@@ -273,6 +273,8 @@
 </div>
 
 <script>
+    var reservaGenerada = ""; // Variable para almacenar el número de reserva asociado al QR generado
+
     // Actualiza el segundo título con el número de reserva en tiempo real
     function updateNumeroReserva() {
         var numeroReserva = document.getElementById('searchInput').value;
@@ -282,6 +284,13 @@
 
     // Simula el proceso de "Terminar todo el proceso"
     function finishProcess() {
+        var numeroReserva = document.getElementById('searchInput').value;
+
+        if (reservaGenerada === numeroReserva) {
+            alert("Ya se ha generado un QR para esta reserva.");
+            return; // Si ya existe un QR, no hacer nada más
+        }
+
         showLoading();
 
         // Simular un retraso antes de generar el QR
@@ -289,6 +298,8 @@
             hideLoading();
             generateQRCode('Reserva de stock terminada');
             document.getElementById('qrForm').style.display = 'block';
+            reservaGenerada = numeroReserva;  // Registrar la reserva con el QR generado
+            document.getElementById('finishButton').disabled = true;  // Deshabilitar el botón "Terminar todo el proceso"
         }, 2000); // 2 segundos de retraso
     }
 
