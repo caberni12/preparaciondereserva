@@ -26,7 +26,7 @@
 
         .container {
             width: 90%;
-            max-width: 1200px; /* Limitar el ancho máximo en pantallas grandes */
+            max-width: 1200px;
             padding: 20px;
             display: flex;
             flex-direction: column;
@@ -34,19 +34,17 @@
             margin-top: 20px;
         }
 
-        /* Formulario responsivo usando CSS Grid */
         .form-container {
             width: 100%;
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 20px;
             margin-bottom: 20px;
         }
 
-        /* Ajustes para pantallas pequeñas */
         @media (max-width: 768px) {
             .form-container {
-                grid-template-columns: 1fr; /* En pantallas más pequeñas, los campos estarán en una sola columna */
+                grid-template-columns: 1fr;
             }
         }
 
@@ -58,6 +56,7 @@
             padding: 12px;
             text-align: center;
             border-radius: 5px;
+            box-sizing: border-box;
         }
 
         .form-container button {
@@ -72,7 +71,6 @@
             background-color: #45a049;
         }
 
-        /* Estilo para botones de acción */
         .action-button {
             background-color: #007bff;
             color: white;
@@ -89,7 +87,6 @@
             background-color: #0056b3;
         }
 
-        /* Estilo para el botón de terminar proceso */
         .finish-button {
             background-color: #007bff;
             color: white;
@@ -144,16 +141,6 @@
 
         .completed {
             background-color: #d4edda;
-            animation: fadeOut 1s forwards;
-        }
-
-        @keyframes fadeOut {
-            from {
-                opacity: 1;
-            }
-            to {
-                opacity: 0.6;
-            }
         }
 
         #total {
@@ -172,6 +159,11 @@
         #qrcode {
             margin-top: 20px;
             display: inline-block;
+        }
+
+        #qrcode-text {
+            font-size: 16px;
+            margin-top: 10px;
         }
 
         .overlay {
@@ -205,43 +197,38 @@
         }
 
     </style>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </head>
-<body>
+<body onload="initPage()">
 
 <h1>RESERVA DE STOCK</h1>
-
-<!-- Segundo título dinámico que cambiará en tiempo real -->
 <h2 id="numeroReservaTitulo">Número de reserva: </h2>
 
 <div class="container">
 
-    <!-- Formulario de consulta -->
     <div class="form-container">
-        <!-- Campo de búsqueda de reserva -->
         <div>
             <label for="searchInput">Consulta de reserva stock</label><br>
             <input type="text" id="searchInput" placeholder="Buscar por número de reserva" oninput="updateNumeroReserva()" />
         </div>
-
-        <!-- Selección de Pikeador -->
+        <div>
+            <label for="notaVentaInput">Número de nota de venta</label><br>
+            <input type="text" id="notaVentaInput" placeholder="Número de nota de venta" />
+        </div>
         <div>
             <label for="pikeador">Seleccionar Pikeador:</label><br>
-            <select id="pikeadorSelect" onchange="filterByPikeador()">
+            <select id="pikeadorSelect">
                 <option value="">Seleccione un Pikeador</option>
-                <!-- Los nombres de los pikeadores se agregarán aquí dinámicamente -->
-            </select>
+            </select><br>
+            <input type="text" id="newPikeadorInput" placeholder="Agregar nuevo Pikeador" oninput="checkPikeadorInput()" />
+            <button id="addPikeadorButton" class="action-button" onclick="addPikeador()" disabled>Agregar Pikeador</button>
         </div>
     </div>
 
-    <!-- Checkboxes de estado -->
     <div class="checkboxes-container">
         <label><input type="checkbox" id="pendienteCheckbox" onchange="filterByState()"> Pendiente</label>
         <label><input type="checkbox" id="terminadoCheckbox" onchange="filterByState()"> Terminado</label>
     </div>
 
-    <!-- Tabla con los datos de los artículos -->
     <div class="table-container">
         <table id="dataTable">
             <thead>
@@ -257,165 +244,168 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Los datos se llenarán aquí con JavaScript -->
+                <tr id="linea1">
+                    <td>1</td>
+                    <td>ABC123</td>
+                    <td>Artículo A</td>
+                    <td>50</td>
+                    <td>30</td>
+                    <td><input type="number" id="unidadesPreparadas1" value="0" onchange="updateUnidadesPreparadas(1)" min="0" /></td>
+                    <td><span id="estado1">Pendiente</span></td>
+                    <td><button class="action-button" onclick="changeState(1)">Marcar como Terminado</button></td>
+                </tr>
+                <tr id="linea2">
+                    <td>2</td>
+                    <td>DEF456</td>
+                    <td>Artículo B</td>
+                    <td>100</td>
+                    <td>80</td>
+                    <td><input type="number" id="unidadesPreparadas2" value="0" onchange="updateUnidadesPreparadas(2)" min="0" /></td>
+                    <td><span id="estado2">Pendiente</span></td>
+                    <td><button class="action-button" onclick="changeState(2)">Marcar como Terminado</button></td>
+                </tr>
             </tbody>
         </table>
     </div>
 
-    <!-- Información adicional -->
-    <div id="total">Total por preparar: 0</div>
-
-    <!-- Botón de "Terminar todo el proceso" -->
-    <button id="finishButton" class="finish-button" onclick="finishProcess()" disabled>Terminar todo el proceso</button>
-
-    <!-- Generación de QR -->
+    <button class="finish-button" id="finishButton" onclick="finishProcess()" disabled>Terminar todo el proceso</button>
+    
+    <div id="total">Total unidades preparadas: <span id="totalUnidades">0</span></div>
+    
     <div id="qrForm">
-        <h2>Número de Reserva Terminado</h2>
         <div id="qrcode"></div>
-        <p>Favor pasar por el lector de QR para hacer el cierre de la reserva</p>
+        <div id="qrcode-text">Favor hacer el cierre de la reserva en el validador</div>
+    </div>
+
+    <div id="loadingOverlay" class="overlay">
+        <div class="spinner"></div>
+        <span>Cargando...</span>
     </div>
 
 </div>
 
-<!-- Overlay de carga -->
-<div class="overlay" id="loadingOverlay">
-    <div class="spinner"></div> Cargando...
-</div>
-
 <script>
-    var reservaGenerada = ""; // Variable para almacenar el número de reserva asociado al QR generado
-
-    // Actualiza el segundo título con el número de reserva en tiempo real
-    function updateNumeroReserva() {
-        var numeroReserva = document.getElementById('searchInput').value;
-        document.getElementById('numeroReservaTitulo').textContent = 'Número de reserva: ' + numeroReserva;
-        checkFinishButtonStatus();  // Revalidar el estado de los botones
+    function initPage() {
+        showLoading();
+        setTimeout(function() {
+            hideLoading();
+            document.getElementById('qrForm').style.display = 'none'; // Ocultar QR y mensaje al inicio
+        }, 2000); // Simula un proceso de 2 segundos para la carga
     }
 
-    // Simula el proceso de "Terminar todo el proceso"
-    function finishProcess() {
-        var numeroReserva = document.getElementById('searchInput').value;
+    function checkPikeadorInput() {
+        var newPikeadorInput = document.getElementById('newPikeadorInput');
+        var addPikeadorButton = document.getElementById('addPikeadorButton');
+        addPikeadorButton.disabled = newPikeadorInput.value.trim() === "";
+    }
 
-        if (reservaGenerada !== numeroReserva) {
-            generateQRCode(numeroReserva);
-            showLoading();
-            setTimeout(function() {
-                hideLoading();
-                alert('Reserva de stock terminada');
-                document.getElementById('qrForm').style.display = 'block';
-                reservaGenerada = numeroReserva;  // Registrar la reserva con el QR generado
-                document.getElementById('finishButton').disabled = true;  // Deshabilitar el botón "Terminar todo el proceso"
-            }, 2000); // 2 segundos de retraso
-        } else {
-            alert('El QR ya ha sido generado para esta reserva');
+    function addPikeador() {
+        var newPikeadorInput = document.getElementById('newPikeadorInput');
+        var pikeadorSelect = document.getElementById('pikeadorSelect');
+
+        var newPikeadorName = newPikeadorInput.value.trim();
+        if (newPikeadorName !== "") {
+            var newOption = document.createElement('option');
+            newOption.value = newPikeadorName;
+            newOption.textContent = newPikeadorName;
+            pikeadorSelect.appendChild(newOption);
+
+            // Limpiar el campo de entrada y deshabilitar el botón
+            newPikeadorInput.value = '';
+            document.getElementById('addPikeadorButton').disabled = true;
         }
     }
 
-    // Mostrar overlay de carga
+    function updateNumeroReserva() {
+        var numeroReserva = document.getElementById('searchInput').value;
+        document.getElementById('numeroReservaTitulo').textContent = "Número de reserva: " + numeroReserva;
+        checkFinishButtonStatus();
+    }
+
+    function checkFinishButtonStatus() {
+        var numeroReserva = document.getElementById('searchInput').value;
+        var finishButton = document.getElementById('finishButton');
+        finishButton.disabled = numeroReserva.trim() === ""; // Deshabilita el botón si no hay número de reserva
+    }
+
+    function finishProcess() {
+        var numeroReserva = document.getElementById('searchInput').value;
+        showLoading();
+        setTimeout(function () {
+            hideLoading();
+            generateQRCode(numeroReserva);
+            document.getElementById('qrForm').style.display = 'block'; // Mostrar QR y mensaje
+            document.getElementById('numeroReservaTituloFinal').textContent = "Número de reserva Terminado: " + numeroReserva;
+        }, 2000); // Simula un proceso de 2 segundos
+    }
+
     function showLoading() {
         document.getElementById('loadingOverlay').style.display = 'flex';
     }
 
-    // Ocultar overlay de carga
     function hideLoading() {
         document.getElementById('loadingOverlay').style.display = 'none';
     }
 
-    // Generar el código QR
-    function generateQRCode(data) {
-        new QRCode(document.getElementById("qrcode"), {
-            text: data,
-            width: 256,
+    function generateQRCode(numeroReserva) {
+        var qrcode = new QRCode(document.getElementById("qrcode"), {
+            text: "Reserva: " + numeroReserva,
+            width: 256,  // Aumentamos el tamaño del QR
             height: 256,
-            colorDark: "#000000",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
         });
     }
 
-    // Validar si todos los artículos están en "Terminado"
-    function checkFinishButtonStatus() {
-        var allTerminado = true;
-        var rows = document.querySelectorAll('#dataTable tbody tr');
+    function changeState(lineaId) {
+        var estadoElement = document.getElementById('estado' + lineaId);
+        var button = document.querySelector(`#linea${lineaId} button`);
+
+        if (estadoElement.textContent === 'Pendiente') {
+            estadoElement.textContent = 'Terminado';
+            estadoElement.classList.add('completed');
+            button.textContent = 'Marcar como Pendiente';
+        } else {
+            estadoElement.textContent = 'Pendiente';
+            estadoElement.classList.remove('completed');
+            button.textContent = 'Marcar como Terminado';
+        }
+    }
+
+    function filterByState() {
+        var pendienteChecked = document.getElementById('pendienteCheckbox').checked;
+        var terminadoChecked = document.getElementById('terminadoCheckbox').checked;
+
+        var rows = document.querySelectorAll("#dataTable tbody tr");
+
         rows.forEach(function(row) {
-            var estado = row.querySelector('td:nth-child(7)').textContent.trim();
-            if (estado !== 'Terminado') {
-                allTerminado = false;
+            var estado = row.querySelector('td:nth-child(7) span').textContent;
+            if ((pendienteChecked && estado === 'Pendiente') || (terminadoChecked && estado === 'Terminado')) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
             }
         });
-
-        var finishButton = document.getElementById('finishButton');
-        if (allTerminado) {
-            finishButton.disabled = false;
-        } else {
-            finishButton.disabled = true;
-        }
     }
 
-    // Función para cambiar el estado de los artículos
-    function changeState(button) {
-        var row = button.closest('tr');
-        var estadoCell = row.querySelector('td:nth-child(7)');
-        var unidadesCell = row.querySelector('td:nth-child(6)'); // Columna "Unidades preparadas"
-        var currentState = estadoCell.textContent.trim();
+    function updateUnidadesPreparadas(lineaId) {
+        var inputElement = document.getElementById('unidadesPreparadas' + lineaId);
+        var unidadesPreparadas = parseInt(inputElement.value) || 0;  // Obtener el valor y asegurarse de que sea un número
+        var totalUnidades = 0;
 
-        if (currentState === 'Pendiente') {
-            estadoCell.textContent = 'Terminado';
-            row.classList.add('completed');
-            unidadesCell.querySelector('input').disabled = true; // Deshabilitar edición
-        } else {
-            estadoCell.textContent = 'Pendiente';
-            row.classList.remove('completed');
-            unidadesCell.querySelector('input').disabled = false; // Habilitar edición
-        }
-
-        checkFinishButtonStatus();
-    }
-
-    // Cargar datos de ejemplo
-    function loadTableData() {
-        var tableBody = document.querySelector('#dataTable tbody');
-        var data = [
-            ['1', 'A123', 'Artículo 1', '10', '5', '5', 'Pendiente'],
-            ['2', 'B234', 'Artículo 2', '20', '10', '10', 'Terminado'],
-            ['3', 'C345', 'Artículo 3', '15', '10', '5', 'Pendiente']
-        ];
-
-        tableBody.innerHTML = '';
-
-        data.forEach(function(item) {
-            var row = document.createElement('tr');
-            item.forEach(function(cell, index) {
-                var td = document.createElement('td');
-                td.textContent = cell;
-
-                // Hacer que "Unidades preparadas" sea editable
-                if (index === 5) {
-                    var input = document.createElement('input');
-                    input.type = 'number';
-                    input.value = cell;
-                    td.innerHTML = ''; // Limpiar texto
-                    td.appendChild(input);
-                }
-
-                row.appendChild(td);
-            });
-
-            var actionCell = document.createElement('td');
-            var actionButton = document.createElement('button');
-            actionButton.textContent = 'Cambiar estado';
-            actionButton.classList.add('action-button');
-            actionButton.onclick = function() { changeState(actionButton); };
-            actionCell.appendChild(actionButton);
-            row.appendChild(actionCell);
-            tableBody.appendChild(row);
+        // Calcular el total de unidades preparadas
+        var allInputs = document.querySelectorAll('[id^="unidadesPreparadas"]');
+        allInputs.forEach(function(input) {
+            var value = parseInt(input.value) || 0;
+            totalUnidades += value;
         });
 
-        checkFinishButtonStatus();
-    }
+        // Mostrar el total de unidades preparadas
+        document.getElementById('totalUnidades').textContent = totalUnidades;
 
-    // Cargar los datos en la tabla
-    loadTableData();
+        console.log("Unidades preparadas en línea " + lineaId + ": " + unidadesPreparadas);
+    }
 </script>
 
 </body>
